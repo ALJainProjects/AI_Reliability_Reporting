@@ -1,0 +1,22 @@
+[
+  {
+    "name": "MongoDB",
+    "url": "https://status.mongodb.com"
+  },
+  {
+    "name": "Snowflake",
+    "url": "https://status.snowflake.com"
+  },
+  {
+    "name": "Confluent",
+    "url": "https://status.confluent.cloud"
+  },
+  {
+    "name": "DigitalOcean",
+    "url": "https://status.digitalocean.com"
+  },
+  {
+    "name": "Dropbox",
+    "url": "https://status.dropbox.com"
+  }
+]

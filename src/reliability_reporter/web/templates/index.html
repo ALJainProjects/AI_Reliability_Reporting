@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Report - Reliability Reporter{% endblock %}
+
+{% block content %}
+<div class="px-4 py-6 sm:px-0">
+    <div class="max-w-3xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Generate Reliability Report</h1>
+        <p class="text-gray-600 mb-8">Analyze status page incidents and generate comprehensive reliability reports.</p>
+
+        <form id="reportForm" class="space-y-6 bg-white shadow rounded-lg p-6">
+            <!-- Target Company -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Target Company
+                </label>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <input type="text" name="company_name" id="company_name" required
+                               placeholder="e.g., New Relic"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="url" name="company_url" id="company_url" required
+                               placeholder="https://status.example.com"
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <button type="button" onclick="testUrl()"
+                                class="px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm">
+                            Test
+                        </button>
+                    </div>
+                </div>
+                <p id="urlTestResult" class="mt-1 text-sm hidden"></p>
+            </div>
+
+            <!-- Date Range -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Analysis Period
+                </label>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Start Date</label>
+                        <input type="date" name="start_date" id="start_date" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">End Date</label>
+                        <input type="date" name="end_date" id="end_date"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Peer Companies -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Peer Companies (for comparison)
+                </label>
+                <div id="peersContainer" class="space-y-2">
+                    <!-- Peer entries will be added here -->
+                </div>
+                <button type="button" onclick="addPeer()"
+                        class="mt-2 text-sm text-blue-600 hover:text-blue-800">
+                    + Add peer company
+                </button>
+            </div>
+
+            <!-- AI Settings -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    AI Provider
+                </label>
+                <div class="flex items-center gap-4">
+                    <select name="provider" id="provider"
+                            class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="openai">OpenAI (GPT-4o)</option>
+                        <option value="anthropic">Anthropic (Claude)</option>
+                    </select>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="skip_ai" id="skip_ai" class="mr-2">
+                        <span class="text-sm text-gray-600">Skip AI (use default categories)</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="pt-4 border-t">
+                <button type="submit" id="submitBtn"
+                        class="w-full px-4 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Generate Report
+                </button>
+            </div>
+        </form>
+
+        <!-- Progress Modal -->
+        <div id="progressModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Generating Report...</h3>
+                <div class="mb-4">
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+                <p id="progressMessage" class="text-sm text-gray-600">Starting...</p>
+            </div>
+        </div>
+
+        <!-- Result Modal -->
+        <div id="resultModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+                <div id="resultSuccess" class="hidden">
+                    <div class="flex items-center justify-center w-12 h-12 mx-auto bg-green-100 rounded-full mb-4">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 text-center mb-2">Report Generated!</h3>
+                    <p id="resultSummary" class="text-sm text-gray-600 text-center mb-4"></p>
+                    <div class="flex gap-2">
+                        <a id="viewReportBtn" href="#" class="flex-1 px-4 py-2 bg-blue-600 text-white text-center rounded-md hover:bg-blue-700">
+                            View Report
+                        </a>
+                        <button onclick="closeResultModal()" class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">
+                            Close
+                        </button>
+                    </div>
+                </div>
+                <div id="resultError" class="hidden">
+                    <div class="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 text-center mb-2">Error</h3>
+                    <p id="errorMessage" class="text-sm text-red-600 text-center mb-4"></p>
+                    <button onclick="closeResultModal()" class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Set default dates
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date();
+        const threeMonthsAgo = new Date(today);
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+        document.getElementById('start_date').value = threeMonthsAgo.toISOString().split('T')[0];
+        document.getElementById('end_date').value = today.toISOString().split('T')[0];
+    });
+
+    let peerCount = 0;
+
+    function addPeer() {
+        peerCount++;
+        const container = document.getElementById('peersContainer');
+        const div = document.createElement('div');
+        div.className = 'flex gap-2 items-center';
+        div.id = `peer_${peerCount}`;
+        div.innerHTML = `
+            <input type="text" name="peer_name_${peerCount}" placeholder="Company name"
+                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+            <input type="url" name="peer_url_${peerCount}" placeholder="Status page URL"
+                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+            <button type="button" onclick="removePeer(${peerCount})" class="text-red-500 hover:text-red-700">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        `;
+        container.appendChild(div);
+    }
+
+    function removePeer(id) {
+        document.getElementById(`peer_${id}`).remove();
+    }
+
+    async function testUrl() {
+        const url = document.getElementById('company_url').value;
+        const result = document.getElementById('urlTestResult');
+
+        if (!url) {
+            result.textContent = 'Please enter a URL';
+            result.className = 'mt-1 text-sm text-red-600';
+            return;
+        }
+
+        result.textContent = 'Testing...';
+        result.className = 'mt-1 text-sm text-gray-600';
+        result.classList.remove('hidden');
+
+        try {
+            const response = await fetch(`/api/test-url?url=${encodeURIComponent(url)}`);
+            const data = await response.json();
+
+            if (data.success) {
+                result.textContent = `Connected! Found: ${data.company_name} (${data.components} components)`;
+                result.className = 'mt-1 text-sm text-green-600';
+
+                // Auto-fill company name if empty
+                const nameInput = document.getElementById('company_name');
+                if (!nameInput.value && data.company_name) {
+                    nameInput.value = data.company_name;
+                }
+            } else {
+                result.textContent = `Error: ${data.error}`;
+                result.className = 'mt-1 text-sm text-red-600';
+            }
+        } catch (error) {
+            result.textContent = `Error: ${error.message}`;
+            result.className = 'mt-1 text-sm text-red-600';
+        }
+    }
+
+    // Form submission
+    document.getElementById('reportForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        // Collect form data
+        const formData = {
+            company_name: document.getElementById('company_name').value,
+            company_url: document.getElementById('company_url').value,
+            start_date: document.getElementById('start_date').value,
+            end_date: document.getElementById('end_date').value || null,
+            provider: document.getElementById('provider').value,
+            skip_ai: document.getElementById('skip_ai').checked,
+            peers: []
+        };
+
+        // Collect peer data
+        document.querySelectorAll('#peersContainer > div').forEach(div => {
+            const nameInput = div.querySelector('input[name^="peer_name"]');
+            const urlInput = div.querySelector('input[name^="peer_url"]');
+            if (nameInput && urlInput && nameInput.value && urlInput.value) {
+                formData.peers.push({
+                    name: nameInput.value,
+                    url: urlInput.value
+                });
+            }
+        });
+
+        // Show progress modal
+        document.getElementById('progressModal').classList.remove('hidden');
+        document.getElementById('submitBtn').disabled = true;
+
+        try {
+            // Start generation
+            const response = await fetch('/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+
+            const { job_id } = await response.json();
+
+            // Poll for status
+            await pollJobStatus(job_id);
+
+        } catch (error) {
+            showError(error.message);
+        } finally {
+            document.getElementById('progressModal').classList.add('hidden');
+            document.getElementById('submitBtn').disabled = false;
+        }
+    });
+
+    async function pollJobStatus(jobId) {
+        const progressBar = document.getElementById('progressBar');
+        const progressMessage = document.getElementById('progressMessage');
+
+        while (true) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            const response = await fetch(`/api/status/${jobId}`);
+            const status = await response.json();
+
+            progressBar.style.width = `${status.progress}%`;
+            progressMessage.textContent = status.message;
+
+            if (status.status === 'completed') {
+                showSuccess(status.result);
+                break;
+            } else if (status.status === 'failed') {
+                showError(status.message);
+                break;
+            }
+        }
+    }
+
+    function showSuccess(result) {
+        document.getElementById('progressModal').classList.add('hidden');
+        document.getElementById('resultModal').classList.remove('hidden');
+        document.getElementById('resultSuccess').classList.remove('hidden');
+        document.getElementById('resultError').classList.add('hidden');
+
+        document.getElementById('resultSummary').textContent =
+            `Analyzed ${result.incident_count} incidents across ${result.category_count} categories.`;
+        document.getElementById('viewReportBtn').href = `/report/${result.report_name}`;
+    }
+
+    function showError(message) {
+        document.getElementById('progressModal').classList.add('hidden');
+        document.getElementById('resultModal').classList.remove('hidden');
+        document.getElementById('resultSuccess').classList.add('hidden');
+        document.getElementById('resultError').classList.remove('hidden');
+        document.getElementById('errorMessage').textContent = message;
+    }
+
+    function closeResultModal() {
+        document.getElementById('resultModal').classList.add('hidden');
+    }
+</script>
+{% endblock %}

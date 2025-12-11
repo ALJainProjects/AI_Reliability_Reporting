@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reliability-reporter"
+version = "0.1.0"
+description = "AI-powered reliability report generator for enterprise status pages"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    {name = "Arnav Jain"}
+]
+keywords = ["reliability", "status-page", "incident-management", "ai", "reporting"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "httpx>=0.27.0",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=5.0.0",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.0.0",
+    "openai>=1.54.0",
+    "anthropic>=0.39.0",
+    "pandas>=2.0.0",
+    "openpyxl>=3.1.0",
+    "click>=8.1.0",
+    "python-dotenv>=1.0.0",
+    "rich>=13.0.0",
+    "jinja2>=3.1.0",
+    "tenacity>=8.2.0",
+    # Web UI
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
+    # PDF generation
+    "reportlab>=4.0.0",
+    # Scheduling
+    "croniter>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "black>=24.0.0",
+    "ruff>=0.7.0",
+    "mypy>=1.8.0",
+]
+
+[project.scripts]
+reliability-report = "reliability_reporter.cli:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
